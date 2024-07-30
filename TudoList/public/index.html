@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo List</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .line-through { text-decoration: line-through; }
+    </style>
+</head>
+<body class="bg-gray-100 p-10">
+    <div class="max-w-md mx-auto bg-white p-5 rounded shadow">
+        <h1 class="text-2xl font-bold mb-4">Todo List</h1>
+        <input type="text" id="taskInput" class="border p-2 w-full mb-4" placeholder="Enter a task">
+        <button onclick="addTask()" class="bg-blue-500 text-white px-4 py-2 rounded">Add Task</button>
+        <ul id="taskList" class="mt-4 list-disc pl-5"></ul>
+    </div>
+    <script>
+        async function addTask() {
+            const taskInput = document.getElementById("taskInput");
+            const task = taskInput.value.trim();
+            if (task) {
+                const response = await fetch('/api/todos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task })
+                });
+                if (response.ok) {
+                    const todo = await response.json();
+                    renderTask(todo);
+                    taskInput.value = "";
+                }
+            }
+        }
+
+        async function getTasks() {
+            const response = await fetch('/api/todos');
+            if (response.ok) {
+                const todos = await response.json();
+                const taskList = document.getElementById("taskList");
+                taskList.innerHTML = ''; 
+                todos.forEach(todo => renderTask(todo));
+            }
+        }
+
+        async function updateTask(id) {
+            const newTask = prompt("Update the task:");
+            if (newTask) {
+                const response = await fetch(`/api/todos/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task: newTask })
+                });
+                if (response.ok) {
+                    const todo = await response.json();
+                    document.getElementById(`task-${id}`).textContent = todo.task;
+                }
+            }
+        }
+
+        async function deleteTask(id) {
+            const response = await fetch(`/api/todos/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                document.getElementById(`item-${id}`).remove();
+            }
+        }
+
+        function renderTask(todo) {
+            const taskList = document.getElementById("taskList");
+            const li = document.createElement("li");
+            li.id = `item-${todo._id}`; 
+            li.classList.add("flex", "justify-between", "items-center", "mb-2");
+            li.innerHTML = `
+                <span id="task-${todo._id}">${todo.task}</span>
+                <div>
+                    <button onclick="updateTask('${todo._id}')" class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
+                    <button onclick="deleteTask('${todo._id}')" class="bg-red-500 text-white px-2 py-1 rounded">Delete</button>
+                </div>
+            `;
+            taskList.appendChild(li);
+        }
+
+        document.addEventListener("DOMContentLoaded", getTasks);
+    </script>
+</body>
+</html>
